@@ -1,7 +1,9 @@
 #include "provided.h"
-#include <list>
 #include "ExpandableHashMap.h"
 #include <queue>
+#include <list>
+#include <unordered_set>
+
 using namespace std;
 
 class PointToPointRouterImpl
@@ -15,9 +17,9 @@ public:
 		list<StreetSegment>& route,
 		double& totalDistanceTravelled) const;
 private:
-	const StreetMap* streetmap;	
+	const StreetMap* streetmap;
 	struct Compare {
-		bool operator()(pair<StreetSegment*, double> const& p1, pair<StreetSegment*, double> const& p2)
+		bool operator()(pair<GeoCoord, double> const& p1, pair<GeoCoord, double> const& p2)
 		{
 			return p1.second > p2.second;
 		}
@@ -39,8 +41,9 @@ DeliveryResult PointToPointRouterImpl::generatePointToPointRoute(
 	list<StreetSegment>& route,
 	double& totalDistanceTravelled) const
 {
-	ExpandableHashMap<GeoCoord, StreetSegment*> coords;
-	ExpandableHashMap<StreetSegment*, bool> breadcrumbs;
+	totalDistanceTravelled = 0;
+	ExpandableHashMap<GeoCoord, GeoCoord> coords;
+	ExpandableHashMap<GeoCoord, GeoCoord> breadcrumbs;
 	vector<StreetSegment> test;
 	if (start == end) {
 		route.clear();
@@ -54,64 +57,115 @@ DeliveryResult PointToPointRouterImpl::generatePointToPointRoute(
 	else {
 		bool routeFound = false;
 		GeoCoord next;
-		priority_queue<pair<StreetSegment*, double>, vector<pair<StreetSegment*, double>>, Compare> possible;
+		priority_queue<pair<GeoCoord, double>, vector<pair<GeoCoord, double>>, Compare> possible;
 
 		vector<StreetSegment> first;
 		streetmap->getSegmentsThatStartWith(start, first);
-		double g;
-		double h;
-		double f;
-		StreetSegment best;
-		for (int i = 0; i < first.size(); i++) {
+		double g = 0;
+		double h = 0;
+		double f = 0;
+		GeoCoord best;
+		
+		/*for (int i = 0; i < first.size(); i++) {
 			g = distanceEarthMiles(start, first[i].end);
 			h = distanceEarthMiles(end, first[i].end);
 			f = g + h;
-			breadcrumbs.associate(&first[i], true);
+			StreetSegment* pfirst = new StreetSegment;
+			pfirst = &first[i];
+			breadcrumbs.insert({pfirst, true });
 			pair<StreetSegment*, double> insert;
 			insert.first = &first[i];
 			insert.second = f;
 			possible.push(insert);
 		}
 		best = *possible.top().first;
-		coords.associate(start, &best);
 		next = best.end;
+		coords.associate(next, best);
+		*/
 
+		pair<GeoCoord, double> initial;
+		GeoCoord a;
+		a.latitude = start.latitude;
+		a.longitude = start.longitude;
+		a.latitudeText = start.latitudeText;
+		a.longitudeText = start.longitudeText;
+		initial.first = a;
+		initial.second = distanceEarthMiles(start, end);
+
+		possible.push(initial);
+		next = start;
+
+		vector<StreetSegment> seg;
 		while (!(possible.empty())) {
+			seg.clear();
 			if (next == end) {
 				routeFound = true;
 				break;
 			}
-			vector<StreetSegment> seg;
+			
 			streetmap->getSegmentsThatStartWith(next, seg);
-			double g;
-			double h;
-			double f;
-			StreetSegment best;
+			double g = 0;
+			double h = 0;
+			double f = 0;
 			for (int i = 0; i < seg.size(); i++) {
-				if (breadcrumbs.find(&seg[i]) == nullptr) {
-					g = distanceEarthMiles(start, seg[i].end);
+				if ((breadcrumbs.find(seg[i].end)) == nullptr) {
+					g = distanceEarthMiles(next, seg[i].end);
 					h = distanceEarthMiles(end, seg[i].end);
 					f = g + h;
-					breadcrumbs.associate(&seg[i], true);
-					pair<StreetSegment*, double> insert;
-					insert.first = &seg[i];
+					pair<GeoCoord, double> insert;
+					GeoCoord co;
+					co.latitude = seg[i].end.latitude;
+					co.longitude = seg[i].end.longitude;
+					co.latitudeText = seg[i].end.latitudeText;
+					co.longitudeText = seg[i].end.longitudeText;
+					insert.first = co;
 					insert.second = f;
 					possible.push(insert);
 				}
-
 			}
-			best = *possible.top().first;
-			coords.associate(next, &best);
-			next = best.end;
-		}
+			/*priority_queue<pair<StreetSegment*, double>, vector<pair<StreetSegment*, double>>, Compare> test;
+			test = possible;
+			while (!(test.empty())) {
+				cerr << test.top().first->end.latitudeText << "," << test.top().first->end.longitudeText << endl;
+				test.pop();
+			}*/
+			//cerr << next.latitudeText << "," << next.longitudeText << endl;
+			if (possible.empty()) {
+				cerr << "empty";
+			}
+			best = (possible.top().first);
+			breadcrumbs.associate(possible.top().first, possible.top().first);
+			//GeoCoord* del = (possible.top().first);
+			//delete del;
+			possible.pop();
+			coords.associate(best, next);
+			next = best;
+		} 
+		/*for (auto it = breadcrumbs.begin(); it != breadcrumbs.end(); it++) {
+			delete &(*it->first);
+		}*/
 		if (!(routeFound)) {
+			cerr << "NO ROUTE";
 			return NO_ROUTE;
 		}
 		else {
+			
+			cerr << "FOUND ROUTE" << endl;
 			while (next != start) {
-				StreetSegment insert;
-				insert = **(coords.find(next));
-				route.push_back(insert);
+				StreetSegment* insert;
+				StreetSegment seg;
+				insert = &seg;
+				//insert = (coords.find(next));
+				vector<StreetSegment> pot;
+				streetmap->getSegmentsThatStartWith(*(coords.find(next)), pot);
+				for (int i = 0; i < pot.size(); i++) {
+					if (pot[i].end == next) {
+						insert = &pot[i];
+					}
+				}
+				route.push_front(*insert);
+				totalDistanceTravelled += distanceEarthMiles(next, insert->start);
+				next = insert->start; 
 			}
 			return DELIVERY_SUCCESS;
 		}
