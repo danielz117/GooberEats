@@ -56,14 +56,14 @@ bool StreetMapImpl::load(string mapFile)
 				int decimalPlace = 1;
 				numSegments = 0;
 				while (line.length() > 0) {
-					numSegments += line[line.length() - 1] * decimalPlace;
+					numSegments += (line[line.length() - 1] - '0') * decimalPlace;
 					decimalPlace *= 10;
 					line = line.substr(0, line.length() - 1);
 				}
 				first = true;
 			}
 		}
-		else if (counter <= numSegments) {
+		else if (counter < numSegments) {
 			counter++;
 			int pos = 0;
 			string startLat;
@@ -106,12 +106,11 @@ bool StreetMapImpl::load(string mapFile)
 			vec2.push_back(seg2);
 
 			container.associate(end, vec2);
-
-		}
-		else if (counter > numSegments) {
-			numSegments = -1;
-			counter = 0;
-			streetName = "";
+			if (counter >= numSegments) {
+				numSegments = -1;
+				counter = 0;
+				streetName = "";
+			}
 		}
 	}
 	return true;

@@ -109,40 +109,40 @@ void ExpandableHashMap<KeyType, ValueType>::associate(const KeyType& key, const 
 		*(find(key)) = value;
 	}
 	else {
-	if (((double)m_numItems + 1) / m_numBuckets > maxLoad) {
-		std::vector<std::list<Node*>> bigger;
-		for (int i = 0; i < m_numBuckets * 2; i++) {
-			std::list<Node*> bucket;
-			bigger.push_back(bucket);
-		}
-
-		for (int i = 0; i < m_numBuckets; i++) {
-			auto it = stuff[i].begin();
-			if (!(stuff[i].empty())) {
-				int hash = getBucketNum((*it)->key, m_numBuckets * 2);
-				bigger[hash].splice(bigger[hash].begin(), stuff[i]);
+		if (((double)m_numItems + 1) / m_numBuckets > maxLoad) {
+			std::vector<std::list<Node*>> bigger;
+			for (int i = 0; i < m_numBuckets * 2; i++) {
+				std::list<Node*> bucket;
+				bigger.push_back(bucket);
 			}
-		}
 
-		for (int i = 0; i < m_numBuckets; i++) {
-			for (auto it = stuff[i].begin(); it != stuff[i].end(); it++) {
-				delete* it;
+			for (int i = 0; i < m_numBuckets; i++) {
+				if (!(stuff[i].empty())) {
+					for (auto it = stuff[i].begin(); it != stuff[i].end(); it++) {
+						int hash = getBucketNum((*it)->key, m_numBuckets * 2);
+						std::list<Node*> newList;
+						newList.push_back((*it));
+						bigger[hash].splice(bigger[hash].begin(), newList);
+					}
+				}
 			}
-			stuff[i].clear();
+			bigger;
+			for (int i = 0; i < m_numBuckets; i++) {
+				stuff[i].clear();
+			}
+			stuff.clear();
+			m_numBuckets *= 2;
+			stuff = bigger;
+			Node* insert = new Node(key, value);
+			int bucketNum = getBucketNum(key, m_numBuckets);
+			stuff[bucketNum].push_back(insert);
 		}
-		stuff.clear();
-		m_numBuckets *= 2;
-		stuff = bigger;
-		Node* insert = new Node(key, value);
-		int bucketNum = getBucketNum(key, m_numBuckets);
-		stuff[bucketNum].push_back(insert);
-	}
-	else {
-		Node* insert = new Node(key, value);
-		int bucketNum = getBucketNum(key, m_numBuckets);
-		stuff[bucketNum].push_back(insert);
-	}
-	m_numItems++;
+		else {
+			Node* insert = new Node(key, value);
+			int bucketNum = getBucketNum(key, m_numBuckets);
+			stuff[bucketNum].push_back(insert);
+		}
+		m_numItems++;
 	}
 
 }
