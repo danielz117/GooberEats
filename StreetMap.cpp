@@ -102,10 +102,15 @@ bool StreetMapImpl::load(string mapFile)
 				container.associate(start, vec1);
 			}
 
-			vector<StreetSegment*> vec2;
-			vec2.push_back(seg2);
+			if (container.find(end) != nullptr) {
+				container.find(end)->push_back(seg2);
+			}
+			else {
+				vector<StreetSegment*> vec2;
+				vec2.push_back(seg2);
+				container.associate(end, vec2);
+			}
 
-			container.associate(end, vec2);
 			if (counter >= numSegments) {
 				numSegments = -1;
 				counter = 0;
@@ -113,6 +118,7 @@ bool StreetMapImpl::load(string mapFile)
 			}
 		}
 	}
+	//container.printAll();
 	return true;
 }
 
@@ -120,7 +126,7 @@ bool StreetMapImpl::getSegmentsThatStartWith(const GeoCoord& gc, vector<StreetSe
 {
 	if (container.find(gc) != nullptr) {
 		for (int i = 0; i < container.find(gc)->size(); i++) {
-			StreetSegment insert = *(*container.find(gc))[i];
+			StreetSegment insert = *((*container.find(gc))[i]);
 			segs.push_back(insert);
 		}
 		return true;
