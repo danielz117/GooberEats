@@ -1,3 +1,7 @@
+// ExpandableHashMap.h
+
+// Skeleton for the ExpandableHashMap class template.  You must implement the first six
+// member functions.
 #include <list>
 #include <vector>
 #include <iterator>
@@ -24,7 +28,6 @@ public:
 	// C++11 syntax for preventing copying and assignment
 	ExpandableHashMap(const ExpandableHashMap&) = delete;
 	ExpandableHashMap& operator=(const ExpandableHashMap&) = delete;
-	void printAll() const;
 private:
 	struct Node
 	{
@@ -46,7 +49,6 @@ private:
 
 
 	int getBucketNum(const KeyType& key, int num) const;
-	
 };
 
 template<typename KeyType, typename ValueType>
@@ -124,7 +126,6 @@ void ExpandableHashMap<KeyType, ValueType>::associate(const KeyType& key, const 
 					}
 				}
 			}
-			bigger;
 			for (int i = 0; i < m_numBuckets; i++) {
 				stuff[i].clear();
 			}
@@ -165,22 +166,3 @@ int ExpandableHashMap<KeyType, ValueType>::getBucketNum(const KeyType& key, int 
 	return (h % num);
 }
 
-template<typename KeyType, typename ValueType>
-inline void ExpandableHashMap<KeyType, ValueType>::printAll() const
-{
-	for (int i = 0; i < stuff.size(); i++) {
-		std::string path;
-		for (auto it = stuff[i].begin(); it != stuff[i].end(); it++) {
-			path += (*it)->value[0]->name + '\n';
-			path += (*it)->key.latitudeText + "," + (*it)->key.longitudeText + "->" + '\n';
-			for (int i = 0; i < (*it)->value.size(); i++) {
-				path += (*it)->value[i]->start.latitudeText + ' ';
-				path += (*it)->value[i]->start.longitudeText + ' ';
-				path += (*it)->value[i]->end.latitudeText + ' ';
-				path += (*it)->value[i]->end.longitudeText + ' ' + '\n';
-			}
-			path += '\n';
-		}
-		std::cerr << path;
-	}
-}

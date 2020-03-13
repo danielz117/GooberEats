@@ -23,6 +23,7 @@ public:
 	bool getSegmentsThatStartWith(const GeoCoord& gc, vector<StreetSegment>& segs) const;
 private:
 	ExpandableHashMap<GeoCoord, vector<StreetSegment*>> container;
+	vector<StreetSegment*> tracker;
 };
 
 StreetMapImpl::StreetMapImpl()
@@ -31,6 +32,10 @@ StreetMapImpl::StreetMapImpl()
 
 StreetMapImpl::~StreetMapImpl()
 {
+	for (int i = 0; i < tracker.size(); ) {
+		delete tracker[tracker.size() - 1];
+		tracker.pop_back();
+	}
 }
 
 bool StreetMapImpl::load(string mapFile)
@@ -46,7 +51,6 @@ bool StreetMapImpl::load(string mapFile)
 	string streetName = "";
 	int numSegments = -1;
 	int counter = 0;
-	bool first = false;
 	while (getline(infile, line)) {
 		if (numSegments == -1) {
 			if (streetName == "") {
@@ -60,7 +64,6 @@ bool StreetMapImpl::load(string mapFile)
 					decimalPlace *= 10;
 					line = line.substr(0, line.length() - 1);
 				}
-				first = true;
 			}
 		}
 		else if (counter < numSegments) {
@@ -93,6 +96,8 @@ bool StreetMapImpl::load(string mapFile)
 			GeoCoord end(endLat, endLong);
 			StreetSegment* seg1 = new StreetSegment(start, end, streetName);
 			StreetSegment* seg2 = new StreetSegment(end, start, streetName);
+			tracker.push_back(seg1);
+			tracker.push_back(seg2);
 			if (container.find(start) != nullptr) {
 				container.find(start)->push_back(seg1);
 			}
@@ -118,7 +123,6 @@ bool StreetMapImpl::load(string mapFile)
 			}
 		}
 	}
-	//container.printAll();
 	return true;
 }
 

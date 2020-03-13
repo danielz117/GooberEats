@@ -50,8 +50,9 @@ DeliveryResult PointToPointRouterImpl::generatePointToPointRoute(
 		totalDistanceTravelled = 0;
 		return DELIVERY_SUCCESS;
 	}
-	else if (streetmap->getSegmentsThatStartWith(start, test) == false &&
+	else if (streetmap->getSegmentsThatStartWith(start, test) == false ||
 		streetmap->getSegmentsThatStartWith(end, test) == false) {
+		cerr << "BAD COORD";
 		return BAD_COORD;
 	}
 	else {
@@ -61,11 +62,8 @@ DeliveryResult PointToPointRouterImpl::generatePointToPointRoute(
 
 		vector<StreetSegment> first;
 		streetmap->getSegmentsThatStartWith(start, first);
-		double g = 0;
-		double h = 0;
-		double f = 0;
 		GeoCoord best;
-		
+
 		/*for (int i = 0; i < first.size(); i++) {
 			g = distanceEarthMiles(start, first[i].end);
 			h = distanceEarthMiles(end, first[i].end);
@@ -102,7 +100,7 @@ DeliveryResult PointToPointRouterImpl::generatePointToPointRoute(
 				routeFound = true;
 				break;
 			}
-			
+
 			streetmap->getSegmentsThatStartWith(next, seg);
 			double g = 0;
 			double h = 0;
@@ -123,33 +121,28 @@ DeliveryResult PointToPointRouterImpl::generatePointToPointRoute(
 					possible.push(insert);
 				}
 			}
-			/*priority_queue<pair<StreetSegment*, double>, vector<pair<StreetSegment*, double>>, Compare> test;
-			test = possible;
-			while (!(test.empty())) {
-				cerr << test.top().first->end.latitudeText << "," << test.top().first->end.longitudeText << endl;
-				test.pop();
-			}*/
 			//cerr << next.latitudeText << "," << next.longitudeText << endl;
 			if (possible.empty()) {
 				cerr << "empty";
 			}
 			best = (possible.top().first);
 			breadcrumbs.associate(possible.top().first, possible.top().first);
-			//GeoCoord* del = (possible.top().first);
-			//delete del;
+			vector<StreetSegment> prev;
+			streetmap->getSegmentsThatStartWith(best, prev);
+			for (int i = 0; i < prev.size(); i++) {
+				if ((breadcrumbs.find(prev[i].end)) != nullptr) {
+					next = prev[i].end;
+				}
+			}
 			possible.pop();
 			coords.associate(best, next);
 			next = best;
-		} 
-		/*for (auto it = breadcrumbs.begin(); it != breadcrumbs.end(); it++) {
-			delete &(*it->first);
-		}*/
+		}
 		if (!(routeFound)) {
 			cerr << "NO ROUTE";
 			return NO_ROUTE;
 		}
 		else {
-			
 			cerr << "FOUND ROUTE" << endl;
 			while (next != start) {
 				StreetSegment* insert;
@@ -165,7 +158,8 @@ DeliveryResult PointToPointRouterImpl::generatePointToPointRoute(
 				}
 				route.push_front(*insert);
 				totalDistanceTravelled += distanceEarthMiles(next, insert->start);
-				next = insert->start; 
+				next = insert->start;
+				//cerr << next.latitudeText << next.longitudeText << endl;
 			}
 			return DELIVERY_SUCCESS;
 		}
