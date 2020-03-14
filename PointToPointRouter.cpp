@@ -72,11 +72,11 @@ DeliveryResult PointToPointRouterImpl::generatePointToPointRoute(
 		initial.first = a;
 		initial.second = distanceEarthMiles(start, end);
 
-		possible.push(initial); //push the starting coordinate and its distance from end into the priority queue
+		//possible.push(initial); //push the starting coordinate and its distance from end into the priority queue
 		next = start;
 
 		vector<StreetSegment> seg;
-		while (!(possible.empty())) {
+		do {
 			seg.clear();
 			if (next == end) { //if the next observed coord is the desired ending coordinate then break
 				routeFound = true;
@@ -115,7 +115,7 @@ DeliveryResult PointToPointRouterImpl::generatePointToPointRoute(
 			possible.pop();
 			coords.associate(best, next); //hash map associates best next coord with its previous coord
 			next = best;
-		}
+		} while (!(possible.empty()));
 		if (!(routeFound)) { //if priority queue is empty without founding a route, return NO ROUTE
 			return NO_ROUTE;
 		}
