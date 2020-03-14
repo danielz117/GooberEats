@@ -18,7 +18,7 @@ public:
 		double& totalDistanceTravelled) const;
 private:
 	const StreetMap* streetmap;
-	struct Compare {
+	struct Compare { //create compare struct for priority queue to analyze which geocoord has less f distance
 		bool operator()(pair<GeoCoord, double> const& p1, pair<GeoCoord, double> const& p2)
 		{
 			return p1.second > p2.second;
@@ -45,14 +45,13 @@ DeliveryResult PointToPointRouterImpl::generatePointToPointRoute(
 	ExpandableHashMap<GeoCoord, GeoCoord> coords;
 	ExpandableHashMap<GeoCoord, GeoCoord> breadcrumbs;
 	vector<StreetSegment> test;
-	if (start == end) {
+	if (start == end) { //if the starting and ending coords are the same, then we are done
 		route.clear();
 		totalDistanceTravelled = 0;
 		return DELIVERY_SUCCESS;
 	}
 	else if (streetmap->getSegmentsThatStartWith(start, test) == false ||
-		streetmap->getSegmentsThatStartWith(end, test) == false) {
-		cerr << "BAD COORD";
+		streetmap->getSegmentsThatStartWith(end, test) == false) { //if either start or end coordinates are not in the map, return BAD
 		return BAD_COORD;
 	}
 	else {
@@ -60,26 +59,9 @@ DeliveryResult PointToPointRouterImpl::generatePointToPointRoute(
 		GeoCoord next;
 		priority_queue<pair<GeoCoord, double>, vector<pair<GeoCoord, double>>, Compare> possible;
 
-		vector<StreetSegment> first;
-		streetmap->getSegmentsThatStartWith(start, first);
+		vector<StreetSegment> beginning;
+		streetmap->getSegmentsThatStartWith(start, beginning);
 		GeoCoord best;
-
-		/*for (int i = 0; i < first.size(); i++) {
-			g = distanceEarthMiles(start, first[i].end);
-			h = distanceEarthMiles(end, first[i].end);
-			f = g + h;
-			StreetSegment* pfirst = new StreetSegment;
-			pfirst = &first[i];
-			breadcrumbs.insert({pfirst, true });
-			pair<StreetSegment*, double> insert;
-			insert.first = &first[i];
-			insert.second = f;
-			possible.push(insert);
-		}
-		best = *possible.top().first;
-		next = best.end;
-		coords.associate(next, best);
-		*/
 
 		pair<GeoCoord, double> initial;
 		GeoCoord a;
@@ -90,13 +72,13 @@ DeliveryResult PointToPointRouterImpl::generatePointToPointRoute(
 		initial.first = a;
 		initial.second = distanceEarthMiles(start, end);
 
-		possible.push(initial);
+		possible.push(initial); //push the starting coordinate and its distance from end into the priority queue
 		next = start;
 
 		vector<StreetSegment> seg;
 		while (!(possible.empty())) {
 			seg.clear();
-			if (next == end) {
+			if (next == end) { //if the next observed coord is the desired ending coordinate then break
 				routeFound = true;
 				break;
 			}
@@ -106,10 +88,10 @@ DeliveryResult PointToPointRouterImpl::generatePointToPointRoute(
 			double h = 0;
 			double f = 0;
 			for (int i = 0; i < seg.size(); i++) {
-				if ((breadcrumbs.find(seg[i].end)) == nullptr) {
-					g = distanceEarthMiles(next, seg[i].end);
-					h = distanceEarthMiles(end, seg[i].end);
-					f = g + h;
+				if ((breadcrumbs.find(seg[i].end)) == nullptr) { //if the geocoord has not been visited yet
+					g = distanceEarthMiles(next, seg[i].end); //calculate the g cost distance from current coord to next potential coord
+					h = distanceEarthMiles(end, seg[i].end); //calculate h cost distance from next potential coord to ending coord
+					f = g + h; //A* cost of each potential geocoord
 					pair<GeoCoord, double> insert;
 					GeoCoord co;
 					co.latitude = seg[i].end.latitude;
@@ -121,45 +103,38 @@ DeliveryResult PointToPointRouterImpl::generatePointToPointRoute(
 					possible.push(insert);
 				}
 			}
-			//cerr << next.latitudeText << "," << next.longitudeText << endl;
-			if (possible.empty()) {
-				cerr << "empty";
-			}
-			best = (possible.top().first);
-			breadcrumbs.associate(possible.top().first, possible.top().first);
+			best = (possible.top().first); //top of priority queue will be geocoord with the least distance cost
+			breadcrumbs.associate(possible.top().first, possible.top().first); //mark geocoord as visited already
 			vector<StreetSegment> prev;
 			streetmap->getSegmentsThatStartWith(best, prev);
 			for (int i = 0; i < prev.size(); i++) {
 				if ((breadcrumbs.find(prev[i].end)) != nullptr) {
-					next = prev[i].end;
+					next = prev[i].end; //finds the previous coord of the best potential coord
 				}
 			}
 			possible.pop();
-			coords.associate(best, next);
+			coords.associate(best, next); //hash map associates best next coord with its previous coord
 			next = best;
 		}
-		if (!(routeFound)) {
-			cerr << "NO ROUTE";
+		if (!(routeFound)) { //if priority queue is empty without founding a route, return NO ROUTE
 			return NO_ROUTE;
 		}
 		else {
-			cerr << "FOUND ROUTE" << endl;
-			while (next != start) {
+			while (next != start) { //if a route is found, iterate until the start coord is reached
 				StreetSegment* insert;
 				StreetSegment seg;
 				insert = &seg;
-				//insert = (coords.find(next));
 				vector<StreetSegment> pot;
 				streetmap->getSegmentsThatStartWith(*(coords.find(next)), pot);
-				for (int i = 0; i < pot.size(); i++) {
+				for (int i = 0; i < pot.size(); i++) { //find the previous coord corresponding with the path
 					if (pot[i].end == next) {
 						insert = &pot[i];
+						break;
 					}
 				}
-				route.push_front(*insert);
+				route.push_front(*insert); //push to the front of the list of segments to preserve order
 				totalDistanceTravelled += distanceEarthMiles(next, insert->start);
 				next = insert->start;
-				//cerr << next.latitudeText << next.longitudeText << endl;
 			}
 			return DELIVERY_SUCCESS;
 		}

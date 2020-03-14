@@ -42,60 +42,75 @@ void DeliveryOptimizerImpl::optimizeDeliveryOrder(
 			oldCrowDistance += distanceEarthMiles(deliveries[i].location, depot);
 		}
 		else {
-			oldCrowDistance += distanceEarthMiles(deliveries[i].location, deliveries[i+1].location);
+			oldCrowDistance += distanceEarthMiles(deliveries[i].location, deliveries[i + 1].location);
 		}
 	}
 	vector<DeliveryRequest> simulations = deliveries;
 	double probability = 90;
-	int iterations = 1000;
-	int newDist = 0;
-	while (iterations > 0) {
+	double newDist = 0;
+	vector<DeliveryRequest> saved;
+	double oldCompare = oldCrowDistance;
+	int nonimprovementIterations = 0;
+	int randomNum = 0;
+	while (true) {
+		randomNum = rand() % 100;
 		simulations = deliveries;
 		newDist = 0;
-		int rand1; 
+		int rand1;
 		int rand2;
 		rand1 = rand() % simulations.size();
 		rand2 = rand() % simulations.size();
-		/*GeoCoord temp;
-		std::string thing;
-		simulations[rand1].item = thing;
-		simulations[rand1].location = temp;
-		simulations[rand1].item = simulations[rand2].item;
-		simulations[rand1].location = simulations[rand2].location;
-		simulations[rand2].item = thing;
-		simulations[rand2].location = temp;*/
-		DeliveryRequest temp(simulations[rand1]);
+		DeliveryRequest temp(simulations[rand1].item, simulations[rand1].location);
 		simulations[rand1] = simulations[rand2];
-		simulations[2] = temp;
-		for (int i = 0; i < deliveries.size(); i++) {
+		simulations[rand2] = temp;
+		for (int i = 0; i < simulations.size(); i++) {
 			if (i == 0) {
-				newDist += distanceEarthMiles(deliveries[i].location, depot);
+				newDist += distanceEarthMiles(simulations[i].location, depot);
 			}
-			else if (i == deliveries.size() - 1) {
-				newDist += distanceEarthMiles(deliveries[i].location, depot);
+			else if (i == simulations.size() - 1) {
+				newDist += distanceEarthMiles(simulations[i].location, depot);
 			}
 			else {
-				newDist += distanceEarthMiles(deliveries[i].location, deliveries[i + 1].location);
+				newDist += distanceEarthMiles(simulations[i].location, simulations[i + 1].location);
 			}
 		}
-		cerr << newDist << endl;
-		if (newDist < oldCrowDistance) {
+		if (newDist < oldCompare) {
 			deliveries = simulations;
+			nonimprovementIterations = 0;
+			oldCompare = newDist;
 		}
-		else if (rand() % 100 < probability) {
+		else if (randomNum < probability) {
+			saved = deliveries;
 			deliveries = simulations;
+			nonimprovementIterations = 0;
+			oldCompare = newDist;
+		}
+		else {
+			nonimprovementIterations++;
+		}
+		if (nonimprovementIterations > 25) {
+			if (saved.empty()) {
+				break;
+			}
+			else {
+				deliveries = saved;
+				oldCompare = 0;
+				for (int i = 0; i < saved.size(); i++) {
+					if (i == 0) {
+						oldCompare += distanceEarthMiles(saved[i].location, depot);
+					}
+					else if (i == saved.size() - 1) {
+						oldCompare += distanceEarthMiles(saved[i].location, depot);
+					}
+					else {
+						oldCompare += distanceEarthMiles(saved[i].location, saved[i + 1].location);
+					}
+				}
+				saved.clear();
+			}
 		}
 		probability--;
-		iterations--;
 	}
-
-
-
-
-
-	//newCrowDistance = oldCrowDistance;
-	
-
 }
 
 //******************** DeliveryOptimizer functions ****************************

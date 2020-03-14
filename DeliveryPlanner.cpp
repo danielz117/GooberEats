@@ -50,11 +50,9 @@ DeliveryResult DeliveryPlannerImpl::generateDeliveryPlan(
 		double startDist = 0;
 		startR = router.generatePointToPointRoute(depot, path[0].location, startt, startDist);
 		if (startR == BAD_COORD) {
-			cerr << "Bad Coord";
 			return BAD_COORD;
 		}
 		else if (startR == NO_ROUTE) {
-			cerr << "No route";
 			return NO_ROUTE;
 		}
 		pathways.push_back(startt);
@@ -69,11 +67,9 @@ DeliveryResult DeliveryPlannerImpl::generateDeliveryPlan(
 			DeliveryResult temp;
 			temp = router.generatePointToPointRoute(start, end, insert, dist);
 			if (temp == BAD_COORD) {
-				cerr << "Bad Coord";
 				return BAD_COORD;
 			}
 			else if (temp == NO_ROUTE) {
-				cerr << "No route";
 				return NO_ROUTE;
 			}
 			pathways.push_back(insert);
@@ -84,11 +80,9 @@ DeliveryResult DeliveryPlannerImpl::generateDeliveryPlan(
 		double endDist = 0;
 		endR = router.generatePointToPointRoute(path[path.size() - 1].location, depot, endt, endDist);
 		if (endR == BAD_COORD) {
-			cerr << "Bad Coord";
 			return BAD_COORD;
 		}
 		else if (endR == NO_ROUTE) {
-			cerr << "No route";
 			return NO_ROUTE;
 		}
 		pathways.push_back(endt);
@@ -97,6 +91,7 @@ DeliveryResult DeliveryPlannerImpl::generateDeliveryPlan(
 
 
 	for (int i = 0; i < pathways.size(); i++) {
+		string oldDir = "";
 		bool justDelivered = true;
 		bool justTurned = false;
 		for (auto it = pathways[i].begin(); it != pathways[i].end(); it++) {
@@ -169,10 +164,8 @@ DeliveryResult DeliveryPlannerImpl::generateDeliveryPlan(
 					it++;
 					if (combine->name == it->name) {
 						if (!(justDelivered)) {
-							router.generatePointToPointRoute((*combine).start, (*it).end, ignore, smallDist);
-							commands.pop_back();
-							insert.initAsProceedCommand(direction, it->name, smallDist);
-							commands.push_back(insert);
+							router.generatePointToPointRoute((*it).start, (*it).end, ignore, smallDist);
+							commands.back().increaseDistance(smallDist);
 							justTurned = false;
 							justDelivered = false;
 						}
@@ -182,6 +175,7 @@ DeliveryResult DeliveryPlannerImpl::generateDeliveryPlan(
 							commands.push_back(insert);
 							justTurned = false;
 							justDelivered = false;
+							oldDir = direction;
 						}
 					}
 					else {
@@ -193,6 +187,7 @@ DeliveryResult DeliveryPlannerImpl::generateDeliveryPlan(
 						commands.push_back(insert);
 						justTurned = false;
 						justDelivered = false;
+						oldDir = direction;
 					}
 				}
 				else {
@@ -204,19 +199,11 @@ DeliveryResult DeliveryPlannerImpl::generateDeliveryPlan(
 					commands.push_back(insert);
 					justTurned = false;
 					justDelivered = false;
+					oldDir = direction;
 				}
 			}
-			else if (angleBetween2Lines(*it, *backCheck) >= 1 &&
-				angleBetween2Lines(*it, *backCheck) < 180) {
-				DeliveryCommand insert;
-				insert.initAsTurnCommand("right", it->name);
-				commands.push_back(insert);
-				it--;
-				justTurned = true;
-				justDelivered = false;
-			}
-			else if (angleBetween2Lines(*it, *backCheck) >= 180 &&
-				angleBetween2Lines(*it, *backCheck) <= 359) {
+			else if (angleBetween2Lines(*backCheck, *it) >= 1 &&
+				angleBetween2Lines(*backCheck, *it) < 180) {
 				DeliveryCommand insert;
 				insert.initAsTurnCommand("left", it->name);
 				commands.push_back(insert);
@@ -224,10 +211,16 @@ DeliveryResult DeliveryPlannerImpl::generateDeliveryPlan(
 				justTurned = true;
 				justDelivered = false;
 			}
-
-
+			else if (angleBetween2Lines(*backCheck, *it) >= 180 &&
+				angleBetween2Lines(*backCheck, *it) <= 359) {
+				DeliveryCommand insert;
+				insert.initAsTurnCommand("right", it->name);
+				commands.push_back(insert);
+				it--;
+				justTurned = true;
+				justDelivered = false;
+			}
 		}
-
 	}
 
 	totalDistanceTravelled = 0;

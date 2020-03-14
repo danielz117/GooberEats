@@ -29,7 +29,7 @@ public:
 	ExpandableHashMap(const ExpandableHashMap&) = delete;
 	ExpandableHashMap& operator=(const ExpandableHashMap&) = delete;
 private:
-	struct Node
+	struct Node //creating private struct to represent the the key and associated value
 	{
 	public:
 		KeyType key;
@@ -42,13 +42,12 @@ private:
 		}
 	};
 
-	double maxLoad;
+	double maxLoad; //declaring private data members
 	int m_numBuckets;
 	int m_numItems;
-	std::vector<std::list<Node*>> stuff;
+	std::vector<std::list<Node*>> stuff; //container to the hash map
 
-
-	int getBucketNum(const KeyType& key, int num) const;
+	int getBucketNum(const KeyType& key, int num) const; //helper function to call hasher function
 };
 
 template<typename KeyType, typename ValueType>
@@ -57,7 +56,7 @@ ExpandableHashMap<KeyType, ValueType>::ExpandableHashMap(double maximumLoadFacto
 	maxLoad = maximumLoadFactor;
 	m_numBuckets = 8;
 	m_numItems = 0;
-	for (int i = 0; i < m_numBuckets; i++) {
+	for (int i = 0; i < m_numBuckets; i++) { //inserting 8 empty buckets (lists) into the container
 		std::list<Node*> bucket;
 		stuff.push_back(bucket);
 	}
@@ -67,10 +66,10 @@ template<typename KeyType, typename ValueType>
 ExpandableHashMap<KeyType, ValueType>::~ExpandableHashMap()
 {
 	for (int i = 0; i < m_numBuckets; i++) {
-		for (auto it = stuff[i].begin(); it != stuff[i].end(); it++) {
-			delete* it;
+		for (auto it = stuff[i].begin(); it != stuff[i].end(); it++) { //destructing all dynamically allocated nodes
+			delete* it; 
 		}
-		stuff[i].clear();
+		stuff[i].clear(); //clearing the container
 	}
 
 	stuff.clear();
@@ -81,7 +80,7 @@ void ExpandableHashMap<KeyType, ValueType>::reset()
 {
 	for (int i = 0; i < m_numBuckets; i++) {
 		for (auto it = stuff[i].begin(); it != stuff[i].end(); it++) {
-			delete* it;
+			delete* it; //destructing all dynamically allocated nodes
 		}
 		stuff[i].clear();
 	}
@@ -90,7 +89,7 @@ void ExpandableHashMap<KeyType, ValueType>::reset()
 
 	m_numBuckets = 8;
 	m_numItems = 0;
-	for (int i = 0; i < m_numBuckets; i++) {
+	for (int i = 0; i < m_numBuckets; i++) { //putting in 8 new, empty buckets into the new, empty hash map
 		std::list<Node*> bucket;
 		stuff.push_back(bucket);
 	}
@@ -105,34 +104,34 @@ int ExpandableHashMap<KeyType, ValueType>::size() const
 template<typename KeyType, typename ValueType>
 void ExpandableHashMap<KeyType, ValueType>::associate(const KeyType& key, const ValueType& value)
 {
-	if (find(key) != nullptr) {
+	if (find(key) != nullptr) { //if the key is already part of the hash map, change into new value
 		*(find(key)) = value;
 	}
 	else {
-		if (((double)m_numItems + 1) / m_numBuckets > maxLoad) {
+		if (((double)m_numItems + 1) / m_numBuckets > maxLoad) { //if adding one new item exceeds the max load then resize
 			std::vector<std::list<Node*>> bigger;
-			for (int i = 0; i < m_numBuckets * 2; i++) {
+			for (int i = 0; i < m_numBuckets * 2; i++) { //create a new hash map that contains double the number of buckets
 				std::list<Node*> bucket;
 				bigger.push_back(bucket);
 			}
 
-			for (int i = 0; i < m_numBuckets; i++) {
+			for (int i = 0; i < m_numBuckets; i++) { //splice in all the nodes from the original hash map
 				if (!(stuff[i].empty())) {
 					for (auto it = stuff[i].begin(); it != stuff[i].end(); it++) {
 						int hash = getBucketNum((*it)->key, m_numBuckets * 2);
 						std::list<Node*> newList;
 						newList.push_back((*it));
-						bigger[hash].splice(bigger[hash].begin(), newList);
+						bigger[hash].splice(bigger[hash].begin(), newList); //insert the nodes into the new hash bucket
 					}
 				}
 			}
-			for (int i = 0; i < m_numBuckets; i++) {
+			for (int i = 0; i < m_numBuckets; i++) { //clear everything from the original hash map
 				stuff[i].clear();
 			}
 			stuff.clear();
 			m_numBuckets *= 2;
-			stuff = bigger;
-			Node* insert = new Node(key, value);
+			stuff = bigger; //set the original hahs map to the resized hash map
+			Node* insert = new Node(key, value); //insert the new association
 			int bucketNum = getBucketNum(key, m_numBuckets);
 			stuff[bucketNum].push_back(insert);
 		}
@@ -148,9 +147,9 @@ void ExpandableHashMap<KeyType, ValueType>::associate(const KeyType& key, const 
 template<typename KeyType, typename ValueType>
 const ValueType* ExpandableHashMap<KeyType, ValueType>::find(const KeyType& key) const
 {
-	int bucketNum = getBucketNum(key, m_numBuckets);
-	for (auto it = stuff[bucketNum].begin(); it != stuff[bucketNum].end(); it++) {
-		if ((*it)->key == key) {
+	int bucketNum = getBucketNum(key, m_numBuckets); //find the appropriate bucket for the key
+	for (auto it = stuff[bucketNum].begin(); it != stuff[bucketNum].end(); it++) { //iterate through the elements in the bucket
+		if ((*it)->key == key) { //is that key is within the list, return the value of the key
 			ValueType* val = &((*it)->value);
 			return val;
 		}
@@ -162,7 +161,7 @@ template<typename KeyType, typename ValueType>
 int ExpandableHashMap<KeyType, ValueType>::getBucketNum(const KeyType& key, int num) const
 {
 	unsigned int hasher(const KeyType & k); // prototype
-	unsigned int h = hasher(key);
+	unsigned int h = hasher(key); //get the bucket number given the size of the hash map
 	return (h % num);
 }
 
